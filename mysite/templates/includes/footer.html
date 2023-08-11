@@ -1,3 +1,5 @@
+{% load navigation_tags %}
+
 <footer>
     <p>Built with Wagtail</p>
 
@@ -17,4 +19,5 @@
             </p>
         {% endif %}
     {% endwith %}
+    {% get_footer_text %}
 </footer>
