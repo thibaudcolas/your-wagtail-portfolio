@@ -37,7 +37,6 @@ class NavigationSettings(ClusterableModel, BaseGenericSetting):
     ]
 
 
-@register_snippet
 class FooterText(
     DraftStateMixin,
     RevisionMixin,
