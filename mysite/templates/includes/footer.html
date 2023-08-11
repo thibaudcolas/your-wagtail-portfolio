@@ -1,0 +1,20 @@
+<footer>
+    <p>Built with Wagtail</p>
+
+    {% with twitter_url=settings.base.NavigationSettings.twitter_url github_url=settings.base.NavigationSettings.github_url mastodon_url=settings.base.NavigationSettings.mastodon_url %}
+        {% if twitter_url or github_url or mastodon_url %}
+            <p>
+                Follow me on:
+                {% if github_url %}
+                    <a href="{{ github_url }}">GitHub</a>
+                {% endif %}
+                {% if twitter_url %}
+                    <a href="{{ twitter_url }}">Twitter</a>
+                {% endif %}
+                {% if mastodon_url %}
+                    <a href="{{ mastodon_url }}">Mastodon</a>
+                {% endif %}
+            </p>
+        {% endif %}
+    {% endwith %}
+</footer>
