@@ -440,3 +440,30 @@ Make sure to click "Show in menus" in some of your top-level pages for them to a
 ### Add search functionality to the website to demonstrate Wagtail search basics
 
 ### Deployment
+
+
+
+## Potential tutorial additions
+
+Solid options:
+
+```
+Django Debug Toolbar
+Sitemap
+parent_page_types and subpage_types
+```
+
+Possible options, not as compelling:
+
+```
+Custom management commands
+Choice fields
+Views
+Messages
+REST API
+Wagtail hooks
+register_icons
+construct_wagtail_userbar and AccessibilityItem
+Search promotion
+Embeds
+```
