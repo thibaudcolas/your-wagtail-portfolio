@@ -43,3 +43,21 @@ header {
 .skip-link:focus-visible {
   top: 5px;
 }
+
+.page-form label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.page-form :is(textarea, input, select) {
+  width: 100%;
+  max-width: 500px;
+  min-height: 40px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.page-form .helptext {
+  font-style: italic;
+}
