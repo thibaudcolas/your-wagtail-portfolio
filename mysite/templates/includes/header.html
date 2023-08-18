@@ -1,12 +1,13 @@
-{% load wagtailcore_tags navigation_tags %}
+{% load wagtailcore_tags navigation_tags wagtailuserbar %}
 <header>
         {% get_site_root as site_root %}
         <nav>
             <p>
-            <a href="{% pageurl site_root %}">Home</a> |
+            <a href="{% pageurl site_root %}">{{ site_root.title }}</a> |
             {% for menuitem in site_root.get_children.live.in_menu %}
-                <a href="{% pageurl menuitem %}">{{ menuitem.title }}</a>
+                <a href="{% pageurl menuitem %}">{{ menuitem.title }}</a>{% if not forloop.last %} | {% endif %}
             {% endfor %}
             </p>
         </nav>
+        {% wagtailuserbar "top-right" %}
 </header>
