@@ -456,7 +456,7 @@ Commit: [52446af](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/
 
 We
 
-- In `mysite/templates/base.html, add an id to the main element: `<main id="main">`.
+- In `mysite/templates/base.html`, add an id to the main element: `<main id="main">`.
 - Then in `mysite/templates/includes/header.html`, after the `<header>` opening tag, add: `<a href="#main" class="skip-link">Skip to content</a>`.
 
 Finally in our stylesheet, add skip link styles:
