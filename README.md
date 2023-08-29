@@ -575,18 +575,17 @@ And finally in `mysite.css`, add basic form styles:
 }
 ```
 
-#### Template for our form page
-
-### Convert BlogPage to use StreamField
-
 ### Add a Projects/Skills page
 
 ### Add search functionality to the website to demonstrate Wagtail search basics
 
 ### Deployment
 
+### Optional steps
 
-### Organise the Wagtail admin with a SnippetViewSetGroup
+#### Convert BlogPage to use StreamField
+
+#### Organise the Wagtail admin with a SnippetViewSetGroup
 
 Commit: [56c32fa](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/56c32fa) Register models with a SnippetViewSetGroup
 
