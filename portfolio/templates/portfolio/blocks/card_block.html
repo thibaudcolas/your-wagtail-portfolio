@@ -1,0 +1,8 @@
+{% load wagtailcore_tags wagtailimages_tags %}
+<div class="card">
+    <h3>{{ self.heading }}</h3>
+    <div>{{ self.text|richtext }}</div>
+    {% if self.image %}
+        {% image self.image width-480 %}
+    {% endif %}
+</div>

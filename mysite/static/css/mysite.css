@@ -61,3 +61,29 @@ header {
 .page-form .helptext {
   font-style: italic;
 }
+
+.card {
+  max-width: min-content;
+  min-width: 50vw;
+  border: 2px solid;
+  padding: 0 10px;
+  margin-bottom: 10px;
+}
+
+.card img {
+  display: block;
+  margin: 0 -10px;
+  max-width: 90vw;
+  border-top: 2px solid;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.grid .card {
+  min-width: 140px;
+  max-width: unset;
+}

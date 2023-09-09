@@ -1,0 +1,16 @@
+{% load wagtailcore_tags %}
+<div>
+    <h2>{{ self.heading }}</h2>
+    {% if self.text %}
+        <p>{{ self.text|richtext }}</p>
+    {% endif %}
+
+    <div class="grid">
+        {% for page in self.posts %}
+            <div class="card">
+                <p><a href="{% pageurl page %}">{{ page.title }}</a></p>
+                <p>{{ page.specific.date }}</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
