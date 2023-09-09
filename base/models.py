@@ -25,7 +25,7 @@ from wagtail.snippets.models import register_snippet
 
 
 @register_setting
-class NavigationSettings(ClusterableModel, BaseGenericSetting):
+class NavigationSettings(BaseGenericSetting):
     twitter_url = models.URLField(verbose_name="Twitter URL", blank=True)
     github_url = models.URLField(verbose_name="GitHub URL", blank=True)
     mastodon_url = models.URLField(verbose_name="Mastodon URL", blank=True)
