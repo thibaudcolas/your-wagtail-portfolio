@@ -8,6 +8,7 @@
             {% for menuitem in site_root.get_children.live.in_menu %}
                 <a href="{% pageurl menuitem %}">{{ menuitem.title }}</a>{% if not forloop.last %} | {% endif %}
             {% endfor %}
+            | <a href="/search/">Search</a>
             </p>
         </nav>
         {% wagtailuserbar "top-right" %}
