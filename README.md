@@ -576,7 +576,354 @@ And finally in `mysite.css`, add basic form styles:
 
 ### Add a Projects/Skills page
 
+#### New app: portfolio
+
+Commit: [4f10d4e](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/4f10d4e) startapp portfolio
+
+Run `python manage.py startapp portfolio`.
+
+### New page with simple blocks
+
+Commit: [376c6d6](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/376c6d6) Add portfolio page with basic StreamField blocks setup
+
+Add `"portfolio",` to `INSTALLED_APPS` in `mysite/settings/base.py`.
+
+In `portfolio/models.py`, add the new page type:
+
+```python
+from wagtail.models import Page
+from wagtail.fields import StreamField
+from wagtail.admin.panels import FieldPanel
+
+from portfolio.blocks import PortfolioStreamBlock
+
+
+class PortfolioPage(Page):
+    """
+    A page to list our projects and skills.
+    """
+    parent_page_types = ["home.HomePage"]
+
+    body = StreamField(
+        PortfolioStreamBlock(),
+        blank=True,
+        use_json_field=True,
+        help_text="Use this section to list your projects and skills.",
+    )
+
+    content_panels = Page.content_panels + [
+        FieldPanel("body"),
+    ]
+```
+
+We can then create the reusable blocks. In `portfolio/blocks.py`:
+
+```python
+from base.blocks import BaseStreamBlock
+
+class PortfolioStreamBlock(BaseStreamBlock):
+    pass
+```
+
+For now all blocks will be from a `BaseStreamBlock`, so we can reuse most of our custom blocks across multiple parts of the site in the future.
+
+In `base/blocks.py`:
+
+```python
+from wagtail.blocks import (
+    CharBlock,
+    ChoiceBlock,
+    RichTextBlock,
+    StreamBlock,
+    StructBlock,
+)
+from wagtail.embeds.blocks import EmbedBlock
+from wagtail.images.blocks import ImageChooserBlock
+
+
+class ImageBlock(StructBlock):
+    """
+    Custom `StructBlock` for utilizing images with associated caption and
+    attribution data
+    """
+
+    image = ImageChooserBlock(required=True)
+    caption = CharBlock(required=False)
+    attribution = CharBlock(required=False)
+
+    class Meta:
+        icon = "image"
+        template = "base/blocks/image_block.html"
+
+
+class HeadingBlock(StructBlock):
+    """
+    Custom `StructBlock` that allows the user to select h2 - h4 sizes for headings
+    """
+
+    heading_text = CharBlock(classname="title", required=True)
+    size = ChoiceBlock(
+        choices=[
+            ("", "Select a heading size"),
+            ("h2", "H2"),
+            ("h3", "H3"),
+            ("h4", "H4"),
+        ],
+        blank=True,
+        required=False,
+    )
+
+    class Meta:
+        icon = "title"
+        template = "base/blocks/heading_block.html"
+
+
+class BaseStreamBlock(StreamBlock):
+    """
+    Define the custom blocks that `StreamField` will utilize
+    """
+
+    heading_block = HeadingBlock()
+    paragraph_block = RichTextBlock(icon="pilcrow")
+    image_block = ImageBlock()
+    embed_block = EmbedBlock(
+        help_text="Insert a URL to embed, for example https://www.youtube.com/watch?v=SGJFWirQ3ks",
+        icon="media",
+    )
+```
+
+Some of those blocks have custom templates. For `EmbedBlock`, create `base/templates/base/blocks/embed_block.html`:
+
+```html
+{{ self }}
+```
+
+For HeadingBlock, create `base/templates/base/blocks/heading_block.html`:
+
+```html
+{% if self.size == 'h2' %}
+    <h2>{{ self.heading_text }}</h2>
+{% elif self.size == 'h3' %}
+    <h3>{{ self.heading_text }}</h3>
+{% elif self.size == 'h4' %}
+    <h4>{{ self.heading_text }}</h4>
+{% endif %}
+```
+
+For ImageBlock, create `base/templates/base/blocks/image_block.html`:
+
+```html
+{% load wagtailimages_tags %}
+
+<figure>
+    {% image self.image fill-600x338 loading="lazy" %}
+    <figcaption>{{ self.caption }} - {{ self.attribution }}</figcaption>
+</figure>
+```
+
+Finally create the template for our page type, in `portfolio/templates/portfolio/portfolio_page.html`:
+
+```html
+{% extends "base.html" %}
+
+{% load wagtailcore_tags wagtailimages_tags %}
+
+{% block body_class %}template-portfolio{% endblock %}
+
+{% block content %}
+    <h1>{{ page.title }}</h1>
+
+    {{ page.body }}
+{% endblock %}
+```
+
+Make migrations and migrate.
+
+#### More complex blocks
+
+Commit: [b2f5064](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/b2f5064) Add examples of more complex blocks
+
+
+In `portfolio/blocks.py`, we will add two new block types: A "Card" block, and a list of featured blog posts. Import more base block types from Wagtail:
+
+```python
+from wagtail.blocks import (
+    CharBlock,
+    ListBlock,
+    PageChooserBlock,
+    RichTextBlock,
+    StructBlock,
+)
+from wagtail.images.blocks import ImageChooserBlock
+```
+
+Creare our two new block types:
+
+```python
+class CardBlock(StructBlock):
+    heading = CharBlock()
+    # To improve consistency in how blocks appear, we only allow certain rich text features to be used.
+    # For example, headings aren’t available because the section will already have a heading.
+    text = RichTextBlock(features=["bold", "italic", "link"])
+    image = ImageChooserBlock(required=False)
+
+    class Meta:
+        icon = "form"
+        template = "portfolio/blocks/card_block.html"
+
+
+class FeaturedPostsBlock(StructBlock):
+    heading = CharBlock()
+    text = RichTextBlock(features=["bold", "italic", "link"], required=False)
+    posts = ListBlock(PageChooserBlock(page_type="blog.BlogPage"))
+
+    class Meta:
+        icon = "folder-open-inverse"
+        template = "portfolio/blocks/featured_posts_block.html"
+```
+
+Update our `PortfolioStreamBlock` to reuse those new block types.
+
+```python
+class PortfolioStreamBlock(BaseStreamBlock):
+    card = CardBlock(group="Sections")
+    featured_posts = FeaturedPostsBlock(group="Sections")
+```
+
+Create the templates for those new block types: first `portfolio/templates/portfolio/blocks/card_block.html`,
+
+```html
+{% load wagtailcore_tags wagtailimages_tags %}
+<div class="card">
+    <h3>{{ self.heading }}</h3>
+    <div>{{ self.text|richtext }}</div>
+    {% if self.image %}
+        {% image self.image width-480 %}
+    {% endif %}
+</div>
+```
+
+Then `portfolio/templates/portfolio/blocks/featured_posts_block.html`:
+
+```html
+{% load wagtailcore_tags %}
+<div>
+    <h2>{{ self.heading }}</h2>
+    {% if self.text %}
+        <p>{{ self.text|richtext }}</p>
+    {% endif %}
+
+    <div class="grid">
+        {% for page in self.posts %}
+            <div class="card">
+                <p><a href="{% pageurl page %}">{{ page.title }}</a></p>
+                <p>{{ page.specific.date }}</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+```
+
+Update your project stylesheet so those block types look nicer:
+
+```css
+.card {
+  max-width: min-content;
+  min-width: 50vw;
+  border: 2px solid;
+  padding: 0 10px;
+  margin-bottom: 10px;
+}
+
+.card img {
+  display: block;
+  margin: 0 -10px;
+  max-width: 90vw;
+  border-top: 2px solid;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.grid .card {
+  min-width: 140px;
+  max-width: unset;
+}
+```
+
+Make migrations and migrate.
+
 ### Add search functionality to the website to demonstrate Wagtail search basics
+
+Commit: [9d1cac6](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/9d1cac6) Add minimal search setup
+
+The `search` app is already present on the site, as it’s part of Wagtail’s starter project template which we used. We can look at the `search` view in `search/views.py` but there is nothing to customize for a simple site search:
+
+```python
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.template.response import TemplateResponse
+
+from wagtail.models import Page
+from wagtail.search.models import Query
+
+
+def search(request):
+    search_query = request.GET.get("query", None)
+    page = request.GET.get("page", 1)
+
+    # Search
+    if search_query:
+        search_results = Page.objects.live().search(search_query)
+        query = Query.get(search_query)
+
+        # Record hit
+        query.add_hit()
+    else:
+        search_results = Page.objects.none()
+
+    # Pagination
+    paginator = Paginator(search_results, 10)
+    try:
+        search_results = paginator.page(page)
+    except PageNotAnInteger:
+        search_results = paginator.page(1)
+    except EmptyPage:
+        search_results = paginator.page(paginator.num_pages)
+
+    return TemplateResponse(
+        request,
+        "search/search.html",
+        {
+            "search_query": search_query,
+            "search_results": search_results,
+        },
+    )
+```
+
+We can make a few nice-to-have customizations to the template which displays the results. First, add `| <a href="/search/">Search</a>` to our `header.html` as the last menu item, so all our pages link to the search form.
+
+Then, in `search/templates/search/search.html`, we will:
+
+- Convert the `<ul>` list to `<ol>` for better semantics – search results are ordered by relevance.
+- Add a message at the top of the results to summarize the query and number of results.
+- Add page counts to the pagination at the bottom.
+
+Summary before the `<ol></ol>` results list:
+
+```html
+<p>You searched{% if search_query %} for “{{ search_query }}”{% endif %}, {{ search_results.paginator.count }} result{{ search_results.paginator.count|pluralize }} found.</p>
+```
+
+Page counts after the `<ol></ol>` results list:
+
+```html
+{% if search_results.paginator.num_pages > 1 %}
+    <p>Page {{ search_results.number }} of {{ search_results.paginator.num_pages }}, showing {{ search_results|length }} result{{ search_results|pluralize }} out of {{ search_results.paginator.count }}</p>
+{% endif %}
+```
 
 ### Deployment
 
