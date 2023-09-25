@@ -586,6 +586,9 @@ Run `python manage.py startapp portfolio`.
 
 Commit: [376c6d6](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/376c6d6) Add portfolio page with basic StreamField blocks setup
 
+- Adding blocks first in the `base` app to encourage future reuse.
+- Some blocks have custom templates, and for some we rely on the default rendering from Wagtail. We could also override the default in more cases just to fully have control over the HTML, but it’s not needed for basic block types.
+
 Add `"portfolio",` to `INSTALLED_APPS` in `mysite/settings/base.py`.
 
 In `portfolio/models.py`, add the new page type:
@@ -743,6 +746,9 @@ Make migrations and migrate.
 
 Commit: [b2f5064](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/b2f5064) Add examples of more complex blocks
 
+- Same as above – using [custom block icons](https://docs.wagtail.org/en/stable/topics/streamfield.html#block-icons) to help with telling block types apart
+- Also using [`groups`](https://docs.wagtail.org/en/stable/reference/streamfield/blocks.html#block-options) so our custom options are easier to find amongst lists of block types.
+- Restrict a PageChooserBlock to only pages of a specific type (here `blog.BlogPage`)
 
 In `portfolio/blocks.py`, we will add two new block types: A "Card" block, and a list of featured blog posts. Import more base block types from Wagtail:
 
@@ -786,9 +792,11 @@ Update our `PortfolioStreamBlock` to reuse those new block types.
 
 ```python
 class PortfolioStreamBlock(BaseStreamBlock):
-    card = CardBlock(group="Sections")
-    featured_posts = FeaturedPostsBlock(group="Sections")
+    card = CardBlock(group="Portfolio sections")
+    featured_posts = FeaturedPostsBlock(group="Portfolio sections")
 ```
+
+Make migrations and migrate.
 
 Create the templates for those new block types: first `portfolio/templates/portfolio/blocks/card_block.html`,
 
@@ -854,11 +862,16 @@ Update your project stylesheet so those block types look nicer:
 }
 ```
 
-Make migrations and migrate.
+Make migrations and migrate if you haven’t already. Then add content in the CMS.
 
-### Add search functionality to the website to demonstrate Wagtail search basics
+### Search
+
+#### Custom search view
 
 Commit: [9d1cac6](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/9d1cac6) Add minimal search setup
+
+- `query.add_hit` is only there to keep track of query popularity _if_ we wanted to introduce promoted search results later (see user guide).
+- Nothing special to Wagtail in the search view. Pagination and all are built-in Django features.
 
 The `search` app is already present on the site, as it’s part of Wagtail’s starter project template which we used. We can look at the `search` view in `search/views.py` but there is nothing to customize for a simple site search:
 
@@ -925,7 +938,25 @@ Page counts after the `<ol></ol>` results list:
 {% endif %}
 ```
 
+#### Make more page content searchable
+
+TODO. Sample code:
+
+```python
+from wagtail.search import index
+
+    search_fields = Page.search_fields + [
+        index.SearchField("body"),
+    ]
+```
+
 ### Deployment
+
+- Fly.io setup
+- Django settings
+- Database
+- Media files
+- Dockerfile
 
 ### Optional steps
 
