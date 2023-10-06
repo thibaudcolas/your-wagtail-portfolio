@@ -5,7 +5,9 @@
 
 app = "ilokoodi-wagtail-portfolio"
 primary_region = "arn"
-console_command = "/code/manage.py shell"
+
+[deploy]
+    release_command = "/code/manage.py migrate"
 
 [build]
 
