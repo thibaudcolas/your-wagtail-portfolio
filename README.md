@@ -952,11 +952,466 @@ from wagtail.search import index
 
 ### Deployment
 
-- Fly.io setup
-- Django settings
-- Database
-- Media files
-- Dockerfile
+#### Set up an image storage bucket with Backblaze B2
+
+We are going to use Backblaze B2 as an image storage and delivery service. Storing our images separately from the site gives a lot of performance, security, and reliability benefits. Backblaze B2 offers a very generous free tier of 10GB of storage and plenty of bandwidth.
+
+The B2 service works exactly like Amazon Web Services’ S3, hence why "AWS" and "S3" show up a lot in our configuration below. We will access our data in B2 just like if we were using S3.
+
+[Sign up for B2 Cloud Storage](https://www.backblaze.com/sign-up/cloud-storage) from [Backblaze](https://www.backblaze.com/):
+
+1. [Sign up](https://www.backblaze.com/sign-up/cloud-storage). Set your account region to a specific one if you want to.
+2. Sign in
+3. Go to Account > My Settings, and under **Security:** click **Verify Email**
+4. Send the code, go to your mailbox, click the verification link
+
+Create a new bucket:
+
+1. Go to B2 Cloud Storage > Buckets, and click **Create a Bucket**
+2. Bucket Unique Name: use something unique, for example `yourname-wagtail-portfolio` (replacing `yourname` with your own name)
+3. Files in Bucket are: Select `Public`
+4. Default Encryption: Select `Disable`
+5. Object Lock: Select `Disable`
+6. Click **Create a Bucket**
+
+Note the bucket’s name, endpoint, and place them in a new `.env.production` file, in the following format:
+
+```txt
+AWS_STORAGE_BUCKET_NAME=
+AWS_S3_ENDPOINT_URL=https://
+AWS_S3_REGION_NAME=
+AWS_S3_ACCESS_KEY_ID=
+AWS_S3_SECRET_ACCESS_KEY=
+DJANGO_ALLOWED_HOSTS=
+DJANGO_CSRF_TRUSTED_ORIGINS=https://
+DJANGO_SETTINGS_MODULE=mysite.settings.production
+```
+
+- Use `AWS_STORAGE_BUCKET_NAME` for the bucket Name
+- Use `AWS_S3_ENDPOINT_URL` for the bucket Endpoint
+- For `AWS_S3_REGION_NAME`, Determine the region from the endpoint. For example, for `s3.us-east-005.backblazeb2.com`, the region is `us-east-005`.
+
+Here is an example with pretend values:
+
+```txt
+AWS_STORAGE_BUCKET_NAME=yourname-wagtail-portfolio
+AWS_S3_ENDPOINT_URL=https://s3.us-east-005.backblazeb2.com
+AWS_S3_REGION_NAME=us-east-005
+AWS_S3_ACCESS_KEY_ID=
+AWS_S3_SECRET_ACCESS_KEY=
+DJANGO_ALLOWED_HOSTS=
+DJANGO_CSRF_TRUSTED_ORIGINS=https://
+DJANGO_SETTINGS_MODULE=mysite.settings.production
+```
+
+Now we will get the secret keys that must never be shared:
+
+1. Go to Account > Application Keys, and click **Add a New Application Key**
+2. Name of Key: a unique name for you to remember. For example, "yourname-wagtail-portfolio-key"
+3. Allow access to Bucket(s): choose the bucket you created
+4. Type of Access: Read and Write
+5. Allow List All Bucket Names: leave this unticked
+6. File name prefix: leave empty
+7. Duration: leave empty
+8. Click "Create New Key"
+9. In your `.env.production`, add the `keyID` after `AWS_S3_ACCESS_KEY_ID=`.
+10. In your `.env.production`, add the `applicationKey` after `AWS_S3_SECRET_ACCESS_KEY=`.
+
+Make sure to never commit or share your `.env.production` file. Anyone with those keys could steal or delete all of your files.
+
+If you lost your secret application key, create a new key following the above process.
+
+#### Set up Fly.io hosting
+
+Sign up to [Fly.io](https://fly.io/), and make sure to verify your account’s email address and add a credit card to fully activate your account.
+
+1. Go to Sign up page
+2. Verify your email. If this fails, do it again from the dashboard.
+3. Add your credit card details. You won’t be charged, this is so you are allowed to create a project in Fly.
+
+Install [flyctl](https://fly.io/docs/hands-on/install-flyctl/)
+
+Sign in with:
+
+```bash
+fly auth login
+```
+
+Output:
+
+```bash
+Opening https://fly.io/app/auth/cli/ ...
+
+Waiting for session... Done
+successfully logged in as <your email>
+```
+
+> For Damilola: From now on we follow the [Existing Django Apps](https://fly.io/docs/django/getting-started/existing/) guide almost to the letter.
+
+Create your project with:
+
+```bash
+fly launch
+```
+
+1. Select your app name
+1. Select the same region as your Backblaze bucket
+1. Postgres database: yes
+1. Configuration: smallest possible
+
+Output:
+
+```bash
+Creating app in /Users/thibaudcolas/Dev/wagtail/your-wagtail-portfolio
+Scanning source code
+Detected a Django app
+? Choose an app name (leave blank to generate one): yourname-wagtail-portfolio
+automatically selected personal organization: yourname
+Some regions require a paid plan (bom, fra, maa).
+See https://fly.io/plans to set up a plan.
+
+? Choose a region for deployment: Stockholm, Sweden (arn)
+App will use 'arn' region as primary
+
+Created app 'yourname-wagtail-portfolio' in organization 'personal'
+Admin URL: https://fly.io/apps/yourname-wagtail-portfolio
+Hostname: yourname-wagtail-portfolio.fly.dev
+? Overwrite "/Users/thibaudcolas/Dev/wagtail/your-wagtail-portfolio/Dockerfile"? Yes
+Set secrets on yourname-wagtail-portfolio: SECRET_KEY
+? Would you like to set up a Postgresql database now? Yes
+? Select configuration: Development - Single node, 1x shared CPU, 256MB RAM, 1GB disk
+? Scale single node pg to zero after one hour? Yes
+Creating postgres cluster in organization personal
+Creating app...
+Setting secrets on app yourname-wagtail-portfolio-db...
+Provisioning 1 of 1 machines with image flyio/postgres-flex:15.3
+Waiting for machine to start...
+Machine 328744e1c53428 is created
+==> Monitoring health checks
+  Waiting for 328744e1c53428 to become healthy (started, 3/3)
+
+Postgres cluster yourname-wagtail-portfolio-db created
+  Username:    postgres
+  Password:    <password>
+  Hostname:    yourname-wagtail-portfolio-db.internal
+  Flycast:     fdaa:3:3975:0:1::2
+  Proxy port:  5432
+  Postgres port:  5433
+  Connection string: postgres://postgres:<password>@yourname-wagtail-portfolio-db.flycast:5432
+
+Save your credentials in a secure place -- you won't be able to see them again!
+
+Connect to postgres
+Any app within the yourname organization can connect to this Postgres using the above connection string
+
+Now that you've set up Postgres, here's what you need to understand: https://fly.io/docs/postgres/getting-started/what-you-should-know/
+Checking for existing attachments
+Registering attachment
+Creating database
+Creating user
+
+Postgres cluster yourname-wagtail-portfolio-db is now attached to yourname-wagtail-portfolio
+The following secret was added to yourname-wagtail-portfolio:
+  DATABASE_URL=postgres://yourname_wagtail_portfolio:<password>@yourname-wagtail-portfolio-db.flycast:5432/yourname_wagtail_portfolio?sslmode=disable
+Postgres cluster yourname-wagtail-portfolio-db is now attached to yourname-wagtail-portfolio
+? Would you like to set up an Upstash Redis database now? No
+Wrote config file fly.toml
+
+[INFO] Python 3.11.5 was detected. 'python:3.11-slim-bullseye' image will be set in the Dockerfile.
+
+Validating /Users/thibaudcolas/Dev/wagtail/your-wagtail-portfolio/fly.toml
+Platform: machines
+✓ Configuration is valid
+
+Multiple 'settings.py' files were found in your Django application:
+[venv/lib/python3.11/site-packages/rest_framework/settings.py, venv/lib/python3.11/site-packages/treebeard/tests/settings.py, venv/lib/python3.11/site-packages/wagtail/test/settings.py, venv/lib/python3.11/site-packages/wagtail/tests/settings.py]
+It's not recommended to have multiple 'settings.py' files.
+Instead, you can have a 'settings/' folder with the settings files according to the different environments (e.g., local.py, staging.py, production.py).
+In this case, you can specify which settings file to use when running the Django application by setting the 'DJANGO_SETTINGS_MODULE' environment variable to the corresponding settings file.
+
+'STATIC_ROOT' setting was detected in 'venv/lib/python3.11/site-packages/wagtail/test/settings.py'!
+Static files will be collected during build time by running 'python manage.py collectstatic' on Dockerfile.
+
+A default SECRET_KEY was not detected in 'venv/lib/python3.11/site-packages/wagtail/test/settings.py'!
+A generated SECRET_KEY "<password>" was set on Dockerfile for building purposes.
+Optionally, you can use django.core.management.utils.get_random_secret_key() to set the SECRET_KEY default value in your venv/lib/python3.11/site-packages/wagtail/test/settings.py.
+```
+
+At this point, we have generated the files as per this commit:
+
+Commit: [cc85865](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/cc85865) Add fly.io generated production setup
+
+#### Configuration files
+
+Commit: [7246547](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/7246547) Add production setup customizations
+
+We shouldn’t have to change the project’s code, but will have to change configuration files.
+
+First, in `.gitignore`, add at the end:
+
+```txt
+.env*
+```
+
+Inn `.dockerignore`, add at the end:
+
+```txt
+.env*
+media
+```
+
+And on the last line of `Dockerfile`, switch to 1 worker so our site works better with Fly.io’s low memory allowance:
+
+```Dockerfile
+CMD ["gunicorn", "--bind", ":8000", "--workers", "1", "mysite.wsgi"]
+```
+
+And in `fly.toml`:
+
+1. Remove the `console_command = "/code/manage.py shell"`
+2. Right where `console_command` was, add a `[deploy]` section:
+
+```toml
+
+[deploy]
+    release_command = "/code/manage.py migrate --noinput"
+
+```
+
+In `requirements.txt`, add our production dependencies:
+
+```txt
+# Production dependencies.
+## gunicorn: runs the server in Docker.
+gunicorn>=21.2.0,<22.0.0
+## psycopg: connects to the Postgres database.
+psycopg[binary]>=3.1.10,<3.2.0
+## dj-database-url: connects to the Postgres database.
+dj-database-url>=2.1.0,<3.0.0
+## whitenoise: servers static files.
+whitenoise>=5.0,<5.1
+## django-storages: connects to Backblaze B2.
+django-storages[s3]>=1.14.0,<2.0.0
+```
+
+In `mysite/settings/production.py`,
+
+```python
+import os
+import random
+import string
+import dj_database_url
+
+from .base import *
+
+DEBUG = False
+
+DATABASES = {
+    "default": dj_database_url.config(
+        conn_max_age=600,
+        conn_health_checks=True
+    )
+}
+
+# SECRET_KEY *should* be specified in the environment.
+SECRET_KEY = os.environ["SECRET_KEY"]
+
+# Make sure Django can detect a secure connection properly on Heroku:
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Force HTTPS redirect (enabled by default!)
+# https://docs.djangoproject.com/en/stable/ref/settings/#secure-ssl-redirect
+SECURE_SSL_REDIRECT = True
+
+# IMPORTANT: Set this to a real hostname when using this in production!
+# See https://docs.djangoproject.com/en/3.2/ref/settings/#allowed-hosts
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
+
+CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+
+# Use the console email backend as we don’t configure emails in this tutorial.
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# Simplified static file serving.
+# https://warehouse.python.org/project/whitenoise/
+MIDDLEWARE.append("whitenoise.middleware.WhiteNoiseMiddleware")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+if "AWS_STORAGE_BUCKET_NAME" in os.environ:
+    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
+    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME")
+    AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL")
+    AWS_S3_ACCESS_KEY_ID = os.getenv("AWS_S3_ACCESS_KEY_ID")
+    AWS_S3_SECRET_ACCESS_KEY = os.getenv("AWS_S3_SECRET_ACCESS_KEY")
+
+    INSTALLED_APPS.append("storages")
+
+    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+        },
+    },
+}
+
+# Allow the redirect importer to work in load-balanced / cloud environments.
+# https://docs.wagtail.org/en/stable/reference/settings.html#redirects
+WAGTAIL_REDIRECTS_FILE_STORAGE = "cache"
+
+try:
+    from .local import *
+except ImportError:
+    pass
+```
+
+In our `.env.production`, add extra settings:
+
+1. `DJANGO_ALLOWED_HOSTS` must match your fly.io project name, for example `yourname-wagtail-portfolio.fly.dev`
+2. `DJANGO_CSRF_TRUSTED_ORIGINS` must match your project’s domain name, for example `https://yourname-wagtail-portfolio.fly.dev`
+3. `DJANGO_SETTINGS_MODULE` must be `mysite.settings.production`
+
+Here is an example:
+
+```text
+AWS_STORAGE_BUCKET_NAME=yourname-wagtail-portfolio
+AWS_S3_ENDPOINT_URL=https://s3.us-east-005.backblazeb2.com
+AWS_S3_REGION_NAME=us-east-005
+AWS_S3_ACCESS_KEY_ID=youracceskeyid
+AWS_S3_SECRET_ACCESS_KEY=yourapplicationsecretkey
+DJANGO_ALLOWED_HOSTS=yourname-wagtail-portfolio.fly.dev
+DJANGO_CSRF_TRUSTED_ORIGINS=https://yourname-wagtail-portfolio.fly.dev
+DJANGO_SETTINGS_MODULE=mysite.settings.production
+```
+
+Set those secrets for Fly to use:
+
+```bash
+flyctl secrets import < .env.production
+```
+
+Finally,
+
+```bash
+fly deploy --ha=false
+```
+
+Output:
+
+```txt
+==> Verifying app config
+Validating /Users/thibaudcolas/Dev/wagtail/your-wagtail-portfolio/fly.toml
+Platform: machines
+✓ Configuration is valid
+--> Verified app config
+==> Building image
+Remote builder fly-builder-frosty-river-8630 ready
+==> Building image with Docker
+--> docker host: 20.10.12 linux x86_64
+[+] Building 3.5s (12/12) FINISHED
+ => [internal] load build definition from Dockerfile                                                                              0.1s
+ => => transferring dockerfile: 32B                                                                                               0.1s
+ => [internal] load .dockerignore                                                                                                 0.1s
+ => => transferring context: 34B                                                                                                  0.1s
+ => [internal] load metadata for docker.io/library/python:3.11-slim-bullseye                                                      0.7s
+ => [internal] load build context                                                                                                 2.7s
+ => => transferring context: 2.00MB                                                                                               2.6s
+ => [1/7] FROM docker.io/library/python:3.11-slim-bullseye@sha256:                                                                0.0s
+ => CACHED [2/7] RUN mkdir -p /code                                                                                               0.0s
+ => CACHED [3/7] WORKDIR /code                                                                                                    0.0s
+ => CACHED [4/7] COPY requirements.txt /tmp/requirements.txt                                                                      0.0s
+ => CACHED [5/7] RUN set -ex &&     pip install --upgrade pip &&     pip install -r /tmp/requirements.txt &&     rm -rf /root/.c  0.0s
+ => CACHED [6/7] COPY . /code                                                                                                     0.0s
+ => CACHED [7/7] RUN python manage.py collectstatic --noinput                                                                     0.0s
+ => exporting to image                                                                                                            0.0s
+ => => exporting layers                                                                                                           0.0s
+ => => writing image sha256:0d67cc955f56094d5a2a8686a1c3eda26e0370f92f0831fcee05c1068639d80c                                      0.0s
+ => => naming to registry.fly.io/yourname-wagtail-portfolio:deployment-01HC2X8ST21VVZ0D9TQZZN47X3                                 0.0s
+--> Building image done
+==> Pushing image to fly
+The push refers to repository [registry.fly.io/yourname-wagtail-portfolio]
+db09b5fac7d9: Layer already exists
+b52ae83836ea: Layer already exists
+ee8c593bb5aa: Layer already exists
+4fcc9dfc4b2d: Layer already exists
+5f70bf18a086: Layer already exists
+e0d2d6536ad2: Layer already exists
+3ad0973549a4: Layer already exists
+9224fa8e5ddb: Layer already exists
+2cc7bd46e795: Layer already exists
+aa065d85cfdc: Layer already exists
+10764c37bcbc: Layer already exists
+deployment-01HC2X8ST21VVZ0D9TQZZN47X3: digest: sha256:55876e955c549adabf65ee66daec8cdba257ee93f0d8747a559ea3d5850fa830 size: 2625
+--> Pushing image done
+image: registry.fly.io/yourname-wagtail-portfolio:deployment-01HC2X8ST21VVZ0D9TQZZN47X3
+image size: 474 MB
+
+Watch your deployment at https://fly.io/apps/yourname-wagtail-portfolio/monitoring
+
+Running yourname-wagtail-portfolio release_command: /code/manage.py migrate
+
+-------
+ ✔ release_command 4d89dee2c7e187 completed successfully
+-------
+This deployment will:
+ * create 1 "app" machine
+
+No machines in group app, launching a new machine
+
+WARNING The app is not listening on the expected address and will not be reachable by fly-proxy.
+You can fix this by configuring your app to listen on the following addresses:
+  - 0.0.0.0:8000
+Found these processes inside the machine with open listening sockets:
+  PROCESS        | ADDRESSES
+-----------------*--------------------------------------
+  /.fly/hallpass | [fdaa:3:3975:a7b:e8:143e:4c7c:2]:22
+
+Finished launching new machines
+-------
+NOTE: The machines for [app] have services with 'auto_stop_machines = true' that will be stopped when idling
+
+
+Visit your newly deployed app at https://yourname-wagtail-portfolio.fly.dev/
+```
+
+Congratulations! Your site is now live, but needs content added.
+
+```bash
+flyctl ssh console
+```
+
+And run:
+
+```bash
+DJANGO_SUPERUSER_USERNAME=admin DJANGO_SUPERUSER_EMAIL=admin@example.com DJANGO_SUPERUSER_PASSWORD=changeme /code/manage.py createsuperuser --noinput
+```
+
+And then `exit`.
+
+Go to https://yourname-wagtail-portfolio.fly.dev/admin/ and add content!
+
+---
+
+Error with an unverified account:
+
+```txt
+Error: error creating a new machine: failed to launch VM: To create more than 1 machine per app please add a payment method. https://fly.io/dashboard/<account>/billing
+Please note that release commands run in their own ephemeral machine, and therefore count towards the machine limit. (Request ID: 01HC2X4FAQ7PT7JEKFKZK5AJM9-lhr)
+```
 
 ### Optional steps
 

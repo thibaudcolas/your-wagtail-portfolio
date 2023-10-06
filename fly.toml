@@ -3,11 +3,11 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = "ilokoodi-wagtail-portfolio"
+app = "yourname-wagtail-portfolio"
 primary_region = "arn"
 
 [deploy]
-    release_command = "/code/manage.py migrate"
+  release_command = "python manage.py migrate --noinput"
 
 [build]
 
