@@ -1,6 +1,26 @@
 # Your first Wagtail site
 
-Starts from Wagtail’s getting started tutorial ([1a72d82](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/1a72d82)), ends with a live site! (TODO)
+Starts from Wagtail’s getting started tutorial ([1a72d82](https://github.com/thibaudcolas/your-wagtail-portfolio/commit/1a72d82)), ends with a [live site](https://your-wagtail-portfolio.fly.dev/)!
+
+## What this is about
+
+We’re creating a new official tutorial for Wagtail as part of [Google Season of Docs](https://wagtail.org/blog/google-season-of-docs-creating-wagtail-developer-onboarding-tutorials/), bridging the gap between the existing "getting started" tutorial and our fully-fledged [bakerydemo](https://github.com/wagtail/bakerydemo) demo site. Want to see the bakerydemo live? There’s a static copy there: [static Wagtail 5.2](https://static-wagtail-v5-2.netlify.app/).
+
+We still have lots of writing to do, but the site’s code is all done at [thibaudcolas/your-wagtail-portfolio](https://github.com/thibaudcolas/your-wagtail-portfolio) if you want to take a look.
+
+Created as part of [Google Season of Docs](https://wagtail.org/blog/google-season-of-docs-creating-wagtail-developer-onboarding-tutorials/) by [@activus_d](https://twitter.com/activus_d), [@meagenvoss](https://twitter.com/meagenvoss), [@thibaud_colas](https://twitter.com/thibaud_colas), with help from [@KalobTaulien](https://twitter.com/KalobTaulien) and Storm Heg.
+
+## Our process
+
+Our rough workflow is:
+
+1. ✅ @thibaudcolas produces the project’s code step-by-step as if I was implementing it as a dev(-ish)
+2. ✅ Then do a rough description of the step-by-step changes in the README, mostly focusing on code correctness, order of the steps
+3. ✅ @activus-d and @thibaudcolas review the steps together to discuss key concepts to cover and possible pitfalls
+4. ⌛ @activus-d goes through my steps to make sure they work.
+5. ⌛ And then authors the full tutorial content (https://github.com/activus-d/tutorial-series/tree/introduction-to-contact-page)
+6. ⌛ Meagen then reviews
+7. 🔴 Once we’re happy, PR to Wagtail docs with tutorial sections
 
 ## New tutorial sections
 
